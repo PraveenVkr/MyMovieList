@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# MyMovieList
 
-## Getting Started
+**MyMovieList** is a premium, modern movie web application built using **Next.js 13** and **Tailwind CSS**. It leverages the **TMDb (The Movie Database) API** to deliver real-time information on popular, upcoming, and top-rated movies. Users can explore detailed movie pages featuring cast information and similar movie suggestions — all wrapped in a sleek, cinematic UI.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Overview
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**MyMovieList** offers an immersive browsing experience, inspired by leading streaming platforms. With powerful search capabilities, responsive design, and rich movie data, it provides a seamless movie discovery experience optimized for desktop usage.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🎬 Features
 
-## Learn More
+### ✅ Browse by Categories
 
-To learn more about Next.js, take a look at the following resources:
+- Popular Movies
+- Top-Rated Titles
+- Upcoming Releases
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🔍 Smart Search
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Instant search results using query parameters
+- Pagination for seamless navigation
 
-## Deploy on Vercel
+### 🎞️ Movie Detail Pages
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- High-resolution posters and backdrops
+- Ratings, runtime, genres, and overview
+- Full cast with profile images
+- Suggestions for related/similar movies
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 💎 Premium UI/UX
+
+- Dark, cinematic theme with gradients and blur effects
+- Responsive grid layouts tailored for desktop
+- Interactive hover states and smooth animations
+- Accessibility-conscious design
+
+### 🔒 Secure and Scalable
+
+- API requests proxied through Next.js API routes to protect API keys
+- Clean separation of frontend and backend logic
+
+---
+
+## 🛠 Tech Stack
+
+- [Next.js 15](https://nextjs.org/) (App Router & Server Components)
+- [Tailwind CSS](https://tailwindcss.com/) (Utility-first CSS framework)
+- [TMDb API](https://www.themoviedb.org/documentation/api) (Movie Data Provider)
+
+---
+
+## 📸 Screenshots
+
+### Home Page
+
+![Home Page](./public/home.png)
+
+### Movie Detail Page
+
+![Movie Detail](./public/details.png)
+
+### Similar Movies
+
+![Similar Movie](./public/similar.png)
+
+### Search Results
+
+![Search Results](./public/search.png)
+
+---
+
+> Build your own cinematic experience with **MyMovieList**.
