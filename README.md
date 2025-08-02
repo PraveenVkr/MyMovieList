@@ -6,21 +6,21 @@ The app also features a magnet link discovery tool, allowing users to fetch magn
 
 ---
 
-## 🚀 Overview
+## Overview
 
 **MyMovieList** offers an immersive browsing experience, inspired by leading streaming platforms. With powerful search capabilities, responsive design, and rich movie data, it provides a seamless movie discovery experience optimized for desktop usage.
 
 ---
 
-## 🎬 Features
+## Features
 
-### ✅ Browse by Categories
+### Browse by Categories
 
 - Popular Movies
 - Top-Rated Titles
 - Upcoming Releases
 
-### ✅ Magnet Link Finder
+### Magnet Link Finder
 
 - Fetch magnet links for selected movies directly from search or detail pages
 
@@ -31,33 +31,19 @@ The app also features a magnet link discovery tool, allowing users to fetch magn
 - Import Letterboxd list URLs
 - Automatically processes up to 20 movies for metadata and magnet link resolution
 
-### 🔍 Smart Search
+### Smart Search
 
 - Instant search results using query parameters
 - Pagination for seamless navigation
 
-### 🎞️ Movie Detail Pages
+### Movie Detail Pages
 
 - High-resolution posters and backdrops
 - Ratings, runtime, genres, and overview
 - Full cast with profile images
 - Suggestions for related/similar movies
 
-### 💎 Premium UI/UX
-
-- Dark, cinematic theme with gradients and blur effects
-- Responsive grid layouts tailored for desktop
-- Interactive hover states and smooth animations
-- Accessibility-conscious design
-
-### 🔒 Secure and Scalable
-
-- API requests proxied through Next.js API routes to protect API keys
-- Clean separation of frontend and backend logic
-
----
-
-## 🛠 Tech Stack
+## Tech Stack
 
 - [Next.js 15](https://nextjs.org/) (App Router & Server Components)
 - [Tailwind CSS](https://tailwindcss.com/) (Utility-first CSS framework)
@@ -65,7 +51,7 @@ The app also features a magnet link discovery tool, allowing users to fetch magn
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### Home Page
 
