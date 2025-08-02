@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import CastDetails from "@/app/components/CastDetails";
+import SimilarMovies from "@/app/components/SimilarMovies";
 
 const DetailPage = ({ params }) => {
   const { id } = params; // Extract movie ID from the route
@@ -10,7 +11,6 @@ const DetailPage = ({ params }) => {
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState(null); // Error state
 
-  // Fetch movie details from YOUR API route (not directly from TMDb)
   useEffect(() => {
     const fetchMovieDetails = async () => {
       if (!id) return;
@@ -168,6 +168,7 @@ const DetailPage = ({ params }) => {
       <div className="bg-[#0F1419] py-12">
         <CastDetails movie_id={id} />
       </div>
+      <SimilarMovies movieId={id} />
     </div>
   );
 };
