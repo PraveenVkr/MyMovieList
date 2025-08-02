@@ -1,6 +1,6 @@
 # MyMovieList
 
-**MyMovieList** is a premium, modern movie web application built using **Next.js 13** and **Tailwind CSS**. It leverages the **TMDb (The Movie Database) API** to deliver real-time information on popular, upcoming, and top-rated movies. Users can explore detailed movie pages featuring cast information and similar movie suggestions — all wrapped in a sleek, cinematic UI.
+**MyMovieList** is a modern movie web application built using **Next.js 15** and **Tailwind CSS**. It leverages the **TMDb (The Movie Database) API** to deliver real-time information on popular, upcoming, and top-rated movies. Users can explore detailed movie pages featuring cast information and similar movie suggestions — all wrapped in a sleek, cinematic UI.
 
 ---
 
