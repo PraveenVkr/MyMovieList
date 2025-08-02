@@ -24,6 +24,7 @@ export async function POST(request) {
 
     console.log("Processing Letterboxd URL:", letterboxdUrl);
 
+    // Always run fresh - no list-level caching, only individual magnet caching
     const pythonScriptPath = path.join(
       process.cwd(),
       "src",
@@ -31,95 +32,122 @@ export async function POST(request) {
       "letterboxd.py"
     );
 
-    // Create a streaming response
     const stream = new ReadableStream({
       start(controller) {
         const python = spawn("python", [pythonScriptPath, letterboxdUrl]);
         let isResolved = false;
-        const magnetLinks = [];
 
-        // 3-minute timeout for entire process
-        const timeout = setTimeout(() => {
+        const cleanup = () => {
           if (!isResolved) {
             python.kill("SIGTERM");
             isResolved = true;
-            controller.enqueue(
-              `data: ${JSON.stringify({
-                type: "error",
-                message: "Request timed out after 3 minutes.",
-              })}\n\n`
-            );
-            controller.close();
+          }
+        };
+
+        const timeout = setTimeout(() => {
+          cleanup();
+          if (!isResolved) {
+            try {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  type: "error",
+                  message: "Request timed out after 3 minutes.",
+                })}\n\n`
+              );
+              controller.close();
+            } catch (e) {
+              console.log("Controller already closed on timeout");
+            }
           }
         }, 180000);
 
         python.stdout.on("data", (data) => {
+          if (isResolved) return;
+
           const output = data.toString();
           console.log("Python output:", output);
 
-          // Parse for magnet links in real-time
           const lines = output.split("\n");
           lines.forEach((line) => {
-            const magnetMatch = line.match(/(.+?) → (magnet:\?[^\s]+)/);
-            if (magnetMatch) {
-              const movieData = {
-                title: magnetMatch[1].trim(),
-                magnetLink: magnetMatch[2],
-                id: Date.now() + Math.random(), // Temporary ID
-              };
+            if (isResolved) return;
 
-              magnetLinks.push(movieData);
+            try {
+              // Parse MOVIE_RESULT from new Python script
+              if (line.startsWith("MOVIE_RESULT: ")) {
+                const movieData = JSON.parse(
+                  line.replace("MOVIE_RESULT: ", "")
+                );
 
-              // Send real-time update
-              controller.enqueue(
-                `data: ${JSON.stringify({
-                  type: "movie_found",
-                  movie: movieData,
-                })}\n\n`
-              );
-            }
-
-            // Send progress updates
-            if (line.includes("Processing movie")) {
-              const progressMatch = line.match(
-                /Processing movie (\d+)\/(\d+): (.+)/
-              );
-              if (progressMatch) {
                 controller.enqueue(
                   `data: ${JSON.stringify({
-                    type: "progress",
-                    current: parseInt(progressMatch[1]),
-                    total: parseInt(progressMatch[2]),
-                    movieTitle: progressMatch[3],
+                    type: "movie_found",
+                    movie: movieData,
                   })}\n\n`
                 );
               }
-            }
 
-            // Send timeout notifications
-            if (line.includes("⏰ Timeout for")) {
-              const timeoutMatch = line.match(/⏰ Timeout for (.+?) \(/);
-              if (timeoutMatch) {
-                controller.enqueue(
-                  `data: ${JSON.stringify({
-                    type: "movie_timeout",
-                    movieTitle: timeoutMatch[1],
-                  })}\n\n`
+              // Send progress updates for cache checking
+              if (line.includes("Checking cache")) {
+                const cacheMatch = line.match(
+                  /Checking cache (\d+)\/(\d+): (.+)/
                 );
+                if (cacheMatch) {
+                  controller.enqueue(
+                    `data: ${JSON.stringify({
+                      type: "progress",
+                      current: parseInt(cacheMatch[1]),
+                      total: parseInt(cacheMatch[2]),
+                      movieTitle: cacheMatch[3],
+                      phase: "cache_check",
+                    })}\n\n`
+                  );
+                }
               }
-            }
 
-            // Send error notifications
-            if (line.includes("🔥 Error for")) {
-              const errorMatch = line.match(/🔥 Error for (.+?):/);
-              if (errorMatch) {
-                controller.enqueue(
-                  `data: ${JSON.stringify({
-                    type: "movie_error",
-                    movieTitle: errorMatch[1],
-                  })}\n\n`
+              // Send progress updates for online fetching
+              if (line.includes("Processing movie")) {
+                const progressMatch = line.match(
+                  /Processing movie (\d+)\/(\d+): (.+)/
                 );
+                if (progressMatch) {
+                  controller.enqueue(
+                    `data: ${JSON.stringify({
+                      type: "progress",
+                      current: parseInt(progressMatch[1]),
+                      total: parseInt(progressMatch[2]),
+                      movieTitle: progressMatch[3],
+                      phase: "fetching",
+                    })}\n\n`
+                  );
+                }
               }
+
+              // Send timeout/error notifications
+              if (line.includes("⏰ Timeout for")) {
+                const timeoutMatch = line.match(/⏰ Timeout for (.+?) \(/);
+                if (timeoutMatch) {
+                  controller.enqueue(
+                    `data: ${JSON.stringify({
+                      type: "movie_timeout",
+                      movieTitle: timeoutMatch[1],
+                    })}\n\n`
+                  );
+                }
+              }
+
+              if (line.includes("🔥 Error for")) {
+                const errorMatch = line.match(/🔥 Error for (.+?):/);
+                if (errorMatch) {
+                  controller.enqueue(
+                    `data: ${JSON.stringify({
+                      type: "movie_error",
+                      movieTitle: errorMatch[1],
+                    })}\n\n`
+                  );
+                }
+              }
+            } catch (e) {
+              console.log("Error enqueuing data:", e.message);
             }
           });
         });
@@ -136,24 +164,26 @@ export async function POST(request) {
 
           console.log("Process closed with code:", code);
 
-          if (code !== 0) {
-            controller.enqueue(
-              `data: ${JSON.stringify({
-                type: "error",
-                message: "Failed to process Letterboxd list.",
-              })}\n\n`
-            );
-          } else {
-            // Send completion message
-            controller.enqueue(
-              `data: ${JSON.stringify({
-                type: "complete",
-                totalFound: magnetLinks.length,
-              })}\n\n`
-            );
-          }
+          try {
+            if (code !== 0) {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  type: "error",
+                  message: "Failed to process Letterboxd list.",
+                })}\n\n`
+              );
+            } else {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  type: "complete",
+                })}\n\n`
+              );
+            }
 
-          controller.close();
+            controller.close();
+          } catch (e) {
+            console.log("Controller already closed on process close");
+          }
         });
 
         python.on("error", (err) => {
@@ -163,13 +193,17 @@ export async function POST(request) {
           isResolved = true;
           console.log("Process spawn error:", err);
 
-          controller.enqueue(
-            `data: ${JSON.stringify({
-              type: "error",
-              message: "Failed to execute Python script.",
-            })}\n\n`
-          );
-          controller.close();
+          try {
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: "error",
+                message: "Failed to execute Python script.",
+              })}\n\n`
+            );
+            controller.close();
+          } catch (e) {
+            console.log("Controller already closed on error");
+          }
         });
       },
     });

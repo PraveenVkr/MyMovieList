@@ -1,6 +1,13 @@
-// src/app/api/magnet/single/route.js
 import { spawn } from "child_process";
 import path from "path";
+import redis from "@/lib/redis";
+import crypto from "crypto";
+
+function getCacheKey(movieTitle, year) {
+  const searchTerm = `${movieTitle} ${year || ""}`.trim().toLowerCase();
+  const hash = crypto.createHash("md5").update(searchTerm).digest("hex");
+  return `magnet:${hash}`;
+}
 
 export async function POST(request) {
   try {
@@ -13,15 +20,33 @@ export async function POST(request) {
       );
     }
 
+    // Check Redis cache first
+    const cacheKey = getCacheKey(movieTitle, year);
+    const cached = await redis.get(cacheKey);
+
+    if (cached) {
+      const cachedData = JSON.parse(cached);
+      console.log("Cache hit for:", movieTitle);
+
+      return Response.json({
+        movieTitle,
+        magnetLink: cachedData.magnet_link,
+        success: !!cachedData.magnet_link,
+        message: cachedData.magnet_link
+          ? "Magnet link found (cached)"
+          : "No magnet link found (cached)",
+        cached: true,
+      });
+    }
+
+    // If not in cache, run Python script
     const searchQuery = year ? `${movieTitle} ${year}` : movieTitle;
-    // Updated path to match your src folder structure
     const pythonScriptPath = path.join(
       process.cwd(),
       "src",
       "scripts",
       "getMovies.py"
     );
-    console.log("Script path:", pythonScriptPath);
 
     return new Promise((resolve) => {
       const python = spawn("python", [pythonScriptPath, searchQuery]);
@@ -29,7 +54,6 @@ export async function POST(request) {
       let error = "";
       let isResolved = false;
 
-      // 30-second timeout
       const timeout = setTimeout(() => {
         if (!isResolved) {
           python.kill("SIGTERM");
@@ -81,6 +105,7 @@ export async function POST(request) {
             magnetLink,
             success: !!magnetLink,
             message: magnetLink ? "Magnet link found" : "No magnet link found",
+            cached: false,
           })
         );
       });
