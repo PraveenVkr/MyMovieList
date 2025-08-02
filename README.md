@@ -26,7 +26,7 @@ The app also features a magnet link discovery tool, allowing users to fetch magn
 
 ### Letterboxd Integration
 
-![logo](./public/letterboxd.svg)
+![logo](./public/Letterboxd.svg)
 
 - Import Letterboxd list URLs
 - Automatically processes up to 20 movies for metadata and magnet link resolution
