@@ -1,0 +1,457 @@
+"use client";
+import React, { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import MovieCard from "../components/MovieCard";
+
+// Enhanced Movie Card with Magnet Link
+const LetterboxdMovieCard = ({ movie, magnetLink, loading: movieLoading }) => {
+  if (movieLoading) {
+    return (
+      <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm rounded-3xl overflow-hidden shadow-xl border border-slate-700/30 animate-pulse">
+        <div className="aspect-[2/3] bg-slate-700/50"></div>
+        <div className="p-6 space-y-3">
+          <div className="h-5 bg-slate-700/50 rounded w-3/4"></div>
+          <div className="h-10 bg-slate-700/50 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group relative">
+      {/* Use your existing MovieCard component */}
+      <div className="relative bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm rounded-3xl overflow-hidden shadow-xl border border-slate-700/30 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2">
+        {/* Poster Container */}
+        {movie.poster_path ? (
+          <Link href={`/movie/${movie.id}`}>
+            <div className="relative aspect-[2/3] overflow-hidden cursor-pointer">
+              <img
+                src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                alt={`${movie.title} Poster`}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+              {/* Rating Badge */}
+              {movie.vote_average > 0 && (
+                <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm rounded-2xl px-3 py-1.5 flex items-center gap-1.5 border border-slate-600/30">
+                  <svg
+                    className="w-4 h-4 text-yellow-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9.049 2.927C9.347 2.01 10.653 2.01 10.951 2.927l.588 1.85a1 1 0 00.95.69h1.95c.969 0 1.371 1.24.588 1.81l-1.58 1.15a1 1 0 00-.364 1.118l.588 1.85c.298.917-.755 1.67-1.538 1.118l-1.58-1.15a1 1 0 00-1.176 0l-1.58 1.15c-.783.552-1.836-.201-1.538-1.118l.588-1.85a1 1 0 00-.364-1.118L2.372 7.377c-.783-.57-.38-1.81.588-1.81h1.95a1 1 0 00.95-.69l.588-1.85z" />
+                  </svg>
+                  <span className="text-white text-sm font-bold">
+                    {movie.vote_average.toFixed(1)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </Link>
+        ) : (
+          <div className="aspect-[2/3] bg-slate-700 flex items-center justify-center">
+            <span className="text-slate-400 text-sm">No Poster</span>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="p-6 space-y-4">
+          <div>
+            <Link href={`/movie/${movie.id}`}>
+              <h3 className="text-lg font-bold text-white leading-tight line-clamp-2 group-hover:text-blue-300 transition-colors duration-300 cursor-pointer mb-2">
+                {movie.title}
+              </h3>
+            </Link>
+            <div className="flex justify-between items-center text-sm text-slate-400 mb-4">
+              <span>
+                {movie.release_date
+                  ? new Date(movie.release_date).getFullYear()
+                  : "Unknown"}
+              </span>
+              {movie.runtime && <span>{movie.runtime} min</span>}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2">
+            {/* Magnet Link Button */}
+            {magnetLink ? (
+              <a
+                href={magnetLink}
+                className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-center font-medium hover:from-green-500 hover:to-emerald-500 transition-colors"
+              >
+                📎 Open Magnet Link
+              </a>
+            ) : (
+              <div className="w-full px-4 py-2 bg-slate-600 text-slate-300 rounded-xl text-center font-medium cursor-not-allowed">
+                ❌ Link Unavailable
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Hover Effect Border */}
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+      </div>
+
+      {/* Glow Effect */}
+      <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 blur-xl opacity-0 group-hover:opacity-60 transition-opacity duration-500 -z-10"></div>
+    </div>
+  );
+};
+
+// Progress Bar Component
+const ProgressBar = ({ current, total, currentMovie }) => {
+  const percentage = total > 0 ? (current / total) * 100 : 0;
+
+  return (
+    <div className="mb-8">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-slate-300">Processing Movies</span>
+        <span className="text-slate-400">
+          {current}/{total}
+        </span>
+      </div>
+      <div className="w-full bg-slate-700 rounded-full h-2">
+        <div
+          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+          style={{ width: `${percentage}%` }}
+        ></div>
+      </div>
+      {currentMovie && (
+        <p className="text-slate-400 text-sm mt-2">
+          Currently processing:{" "}
+          <span className="text-white">{currentMovie}</span>
+        </p>
+      )}
+    </div>
+  );
+};
+
+// Main Component
+const LetterboxdPage = () => {
+  const searchParams = useSearchParams();
+  const letterboxdUrl = searchParams.get("url");
+
+  const [movies, setMovies] = useState([]);
+  const [movieDetails, setMovieDetails] = useState({});
+  const [movieDetailsLoading, setMovieDetailsLoading] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [currentMovie, setCurrentMovie] = useState("");
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    if (!letterboxdUrl) {
+      setError("No Letterboxd URL provided");
+      setLoading(false);
+      return;
+    }
+
+    fetchLetterboxdMovies();
+  }, [letterboxdUrl]);
+
+  const addNotification = (message, type = "info") => {
+    const notification = { id: Date.now(), message, type };
+    setNotifications((prev) => [...prev.slice(-4), notification]); // Keep last 5
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
+    }, 5000);
+  };
+
+  // Function to search for movie details using TMDb API
+  const searchMovieDetails = async (movieTitle, magnetLink) => {
+    try {
+      // Extract year from title if present (e.g., "Movie Name (2023)")
+      const yearMatch = movieTitle.match(/\((\d{4})\)/);
+      const cleanTitle = movieTitle.replace(/\(\d{4}\)/, "").trim();
+      const year = yearMatch ? yearMatch[1] : "";
+
+      const searchQuery = year ? `${cleanTitle} ${year}` : cleanTitle;
+      const response = await fetch(
+        `/api/movies/search?query=${encodeURIComponent(searchQuery)}&page=1`
+      );
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        const movie = data.results[0]; // Take the first (most relevant) result
+        return {
+          ...movie,
+          magnetLink,
+          originalTitle: movieTitle,
+        };
+      } else {
+        // Return basic movie object if not found in TMDb
+        return {
+          id: Date.now() + Math.random(),
+          title: movieTitle,
+          poster_path: null,
+          vote_average: 0,
+          release_date: null,
+          runtime: null,
+          magnetLink,
+          originalTitle: movieTitle,
+        };
+      }
+    } catch (error) {
+      console.error(`Error searching for ${movieTitle}:`, error);
+      return {
+        id: Date.now() + Math.random(),
+        title: movieTitle,
+        poster_path: null,
+        vote_average: 0,
+        release_date: null,
+        runtime: null,
+        magnetLink,
+        originalTitle: movieTitle,
+      };
+    }
+  };
+
+  const fetchLetterboxdMovies = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/magnet/letterboxd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ letterboxdUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to process list");
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Stream not supported");
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              switch (data.type) {
+                case "movie_found":
+                  // Add movie to list immediately with basic info
+                  const tempMovie = {
+                    id: Date.now() + Math.random(),
+                    title: data.movie.title,
+                    magnetLink: data.movie.magnetLink,
+                    originalTitle: data.movie.title,
+                  };
+
+                  setMovies((prev) => [...prev, tempMovie]);
+                  setMovieDetailsLoading((prev) => ({
+                    ...prev,
+                    [tempMovie.id]: true,
+                  }));
+
+                  // Search for detailed movie info in background
+                  searchMovieDetails(
+                    data.movie.title,
+                    data.movie.magnetLink
+                  ).then((detailedMovie) => {
+                    setMovieDetails((prev) => ({
+                      ...prev,
+                      [tempMovie.id]: detailedMovie,
+                    }));
+                    setMovieDetailsLoading((prev) => ({
+                      ...prev,
+                      [tempMovie.id]: false,
+                    }));
+                  });
+
+                  addNotification(`Found: ${data.movie.title}`, "success");
+                  break;
+
+                case "progress":
+                  setProgress({ current: data.current, total: data.total });
+                  setCurrentMovie(data.movieTitle);
+                  break;
+
+                case "movie_timeout":
+                  addNotification(`Timeout: ${data.movieTitle}`, "warning");
+                  break;
+
+                case "movie_error":
+                  addNotification(`Error: ${data.movieTitle}`, "error");
+                  break;
+
+                case "complete":
+                  setLoading(false);
+                  addNotification(
+                    `Completed! Found ${data.totalFound} magnet links`,
+                    "success"
+                  );
+                  break;
+
+                case "error":
+                  setError(data.message);
+                  setLoading(false);
+                  break;
+              }
+            } catch (e) {
+              console.error("Error parsing SSE data:", e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-red-800 to-red-700 rounded-full flex items-center justify-center">
+            <span className="text-4xl">❌</span>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">
+            Error Processing List
+          </h2>
+          <p className="text-slate-400 mb-6">{error}</p>
+          <Link
+            href="/"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-500 hover:to-purple-500 transition-colors"
+          >
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="relative">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent)] pointer-events-none"></div>
+
+        <div className="relative max-w-7xl mx-auto px-6 py-12">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
+              Letterboxd Results
+            </h1>
+            <p className="text-slate-400 text-lg mb-2">
+              {loading
+                ? "Processing..."
+                : `Found ${movies.length} movies with magnet links`}
+            </p>
+            <div className="flex justify-center">
+              <Link
+                href="/"
+                className="px-4 py-2 bg-slate-700 text-slate-300 rounded-xl hover:bg-slate-600 transition-colors"
+              >
+                ← Back to Home
+              </Link>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          {loading && progress.total > 0 && (
+            <ProgressBar
+              current={progress.current}
+              total={progress.total}
+              currentMovie={currentMovie}
+            />
+          )}
+
+          {/* Notifications */}
+          {notifications.length > 0 && (
+            <div className="fixed top-20 right-4 z-50 space-y-2">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm border ${
+                    notification.type === "success"
+                      ? "bg-green-900/20 border-green-700 text-green-300"
+                      : notification.type === "warning"
+                      ? "bg-yellow-900/20 border-yellow-700 text-yellow-300"
+                      : notification.type === "error"
+                      ? "bg-red-900/20 border-red-700 text-red-300"
+                      : "bg-blue-900/20 border-blue-700 text-blue-300"
+                  }`}
+                >
+                  {notification.message}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Movies Grid */}
+          {movies.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-8">
+              {movies.map((movie) => {
+                const detailedMovie = movieDetails[movie.id] || movie;
+                const isLoading = movieDetailsLoading[movie.id];
+
+                return (
+                  <LetterboxdMovieCard
+                    key={movie.id}
+                    movie={detailedMovie}
+                    magnetLink={movie.magnetLink}
+                    loading={isLoading}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && movies.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-slate-300 text-lg">Starting processing...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Wrapper with Suspense
+const LetterboxdPageWrapper = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-300 text-lg">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <LetterboxdPage />
+    </Suspense>
+  );
+};
+
+export default LetterboxdPageWrapper;

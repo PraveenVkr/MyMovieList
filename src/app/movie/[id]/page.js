@@ -4,6 +4,150 @@ import Image from "next/image";
 import CastDetails from "@/app/components/CastDetails";
 import SimilarMovies from "@/app/components/SimilarMovies";
 
+// Magnet Link Button Component
+const MagnetLinkButton = ({ movieTitle, releaseDate }) => {
+  const [magnetLink, setMagnetLink] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleGetMagnet = async () => {
+    setLoading(true);
+    setError(null);
+    setMagnetLink(null);
+
+    try {
+      const year = new Date(releaseDate).getFullYear();
+      const response = await fetch("/api/magnet/single", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ movieTitle, year }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 408) {
+          setError("Request timed out after 30 seconds. Please try again.");
+        } else {
+          setError(data.error || "Failed to get magnet link");
+        }
+        return;
+      }
+
+      if (data.magnetLink) {
+        setMagnetLink(data.magnetLink);
+      } else {
+        setError("No magnet link found for this movie");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-6">
+      <button
+        onClick={handleGetMagnet}
+        disabled={loading}
+        className="group relative px-8 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-2xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:from-red-500 hover:to-pink-500"
+      >
+        <span className="relative z-10 flex items-center gap-2">
+          {loading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Searching... (30s timeout)
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Get Magnet Link
+            </>
+          )}
+        </span>
+
+        {/* Button Glow Effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
+      </button>
+
+      {/* Success State */}
+      {magnetLink && (
+        <div className="mt-4 p-4 bg-gradient-to-r from-green-900/20 to-emerald-900/20 rounded-2xl border border-green-700/30 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <svg
+              className="w-5 h-5 text-green-400"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="text-green-400 font-medium">✅ Magnet link found!</p>
+          </div>
+          <div className="flex gap-3">
+            <a
+              href={magnetLink}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:from-green-500 hover:to-emerald-500 transition-colors text-center"
+            >
+              📎 Open Magnet Link
+            </a>
+            <button
+              onClick={() => navigator.clipboard.writeText(magnetLink)}
+              className="px-4 py-2 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-600 transition-colors"
+              title="Copy to clipboard"
+            >
+              📋 Copy
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="mt-4 p-4 bg-gradient-to-r from-red-900/20 to-pink-900/20 rounded-2xl border border-red-700/30 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <svg
+              className="w-5 h-5 text-red-400"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="text-red-400 font-medium">❌ {error}</p>
+          </div>
+          <button
+            onClick={handleGetMagnet}
+            className="px-4 py-2 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DetailPage = ({ params }) => {
   const { id } = params; // Extract movie ID from the route
 
@@ -150,7 +294,7 @@ const DetailPage = ({ params }) => {
                 </div>
 
                 {/* Overview */}
-                <div>
+                <div className="mb-6">
                   <h3 className="text-2xl font-bold mb-3 text-[#FFC857]">
                     Overview
                   </h3>
@@ -158,6 +302,12 @@ const DetailPage = ({ params }) => {
                     {movie.overview}
                   </p>
                 </div>
+
+                {/* Magnet Link Button - Added Here */}
+                <MagnetLinkButton
+                  movieTitle={movie.title}
+                  releaseDate={movie.release_date}
+                />
               </div>
             </div>
           </div>
@@ -168,6 +318,8 @@ const DetailPage = ({ params }) => {
       <div className="bg-[#0F1419] py-12">
         <CastDetails movie_id={id} />
       </div>
+
+      {/* Similar Movies Section */}
       <SimilarMovies movieId={id} />
     </div>
   );
