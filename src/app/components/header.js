@@ -27,7 +27,6 @@ const Header = () => {
   const handleLetterboxdSubmit = (e) => {
     e.preventDefault();
     if (letterboxdUrl.trim()) {
-      // Navigate to letterboxd results page with URL as query parameter
       router.push(`/letterboxd?url=${encodeURIComponent(letterboxdUrl)}`);
       setLetterboxdUrl("");
       setShowLetterboxd(false);
@@ -92,32 +91,60 @@ const Header = () => {
                 </div>
               </form>
 
-              {/* Letterboxd Tool */}
-              <button
-                onClick={() => setShowLetterboxd(true)}
-                className="group relative bg-gradient-to-r from-slate-800 to-slate-700 text-white p-3 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-purple-500/25 border border-slate-600/30"
-                title="Process Letterboxd List"
-              >
-                <FiList className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
+              {/* Letterboxd Tool with Logo */}
+              <div className="flex items-center gap-3">
+                {/* Three lines button */}
+                <button
+                  onClick={() => setShowLetterboxd(true)}
+                  className="group relative bg-gradient-to-r from-slate-800 to-slate-700 text-white p-3 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-green-500/25 border border-slate-600/30"
+                  title="Process Letterboxd List"
+                >
+                  <FiList className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-green-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </button>
+
+                {/* Letterboxd Logo - Now on the right and bigger */}
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/Letterboxd.svg"
+                    alt="Letterboxd"
+                    className="w-10 h-10 hover:scale-110 transition-transform duration-200"
+                  />
+                  <span className="text-slate-300 text-base font-medium">
+                    Letterboxd
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Letterboxd Input Modal */}
+      {/* Letterboxd Input Modal - Simplified since logo is now in header */}
       {showLetterboxd && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 max-w-md w-full border border-slate-700/30">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-white">Letterboxd List</h2>
+            {/* Simplified Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/Letterboxd.svg"
+                  alt="Letterboxd"
+                  className="w-8 h-8"
+                />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Import List</h2>
+                  <p className="text-xs text-slate-400">
+                    Import your Letterboxd lists
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setShowLetterboxd(false);
                   setLetterboxdUrl("");
                 }}
-                className="text-slate-400 hover:text-white text-2xl"
+                className="text-slate-400 hover:text-white text-2xl transition-colors"
               >
                 ×
               </button>
@@ -125,21 +152,36 @@ const Header = () => {
 
             <form onSubmit={handleLetterboxdSubmit}>
               <div className="mb-6">
-                <label className="block text-slate-300 mb-2">
-                  Enter Letterboxd List URL:
+                <label className="block text-slate-300 mb-2 font-medium">
+                  Enter Letterboxd List URL and get Magnet Link for every movie:
                 </label>
                 <input
                   type="url"
                   value={letterboxdUrl}
                   onChange={(e) => setLetterboxdUrl(e.target.value)}
                   placeholder="https://letterboxd.com/username/list/listname/"
-                  className="w-full bg-slate-800 text-white px-4 py-3 rounded-xl border border-slate-600/30 focus:border-blue-500 outline-none"
+                  className="w-full bg-slate-800 text-white px-4 py-3 rounded-xl border border-slate-600/30 focus:border-green-500 outline-none transition-colors"
                   required
                 />
-                <div className="text-slate-400 text-sm mt-2 space-y-1">
-                  <p>ℹ️ Processes first 20 movies from the list</p>
-                  <p>⏰ 15s timeout per movie, 2min total</p>
+
+                {/* Info section */}
+                <div className="mt-4 p-3 bg-slate-800/50 rounded-xl border border-slate-700/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-slate-300">
+                      How it works:
+                    </span>
+                  </div>
+                  <div className="text-slate-400 text-sm space-y-1 ml-5">
+                    <p>• Processes first 20 movies from your list</p>
+                    <p>• 15s timeout per movie, 2min total</p>
+                    <p>• Real-time results as movies are found</p>
+                  </div>
                 </div>
+
+                <p className="text-xs text-slate-500 mt-2">
+                  Make sure your Letterboxd list is public to import
+                </p>
               </div>
 
               <div className="flex gap-3">
@@ -155,9 +197,9 @@ const Header = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-500 hover:to-purple-500 transition-colors"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl font-medium hover:from-green-500 hover:to-green-400 transition-colors shadow-lg"
                 >
-                  Process List
+                  Import List
                 </button>
               </div>
             </form>
