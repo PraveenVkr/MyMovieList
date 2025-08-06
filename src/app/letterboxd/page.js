@@ -66,21 +66,91 @@ const LetterboxdMovieCard = ({ movie, loading: movieLoading }) => {
               </span>
               {movie.runtime && <span>{movie.runtime} min</span>}
             </div>
-          </div>
-          {/* Action Buttons */}
-          <div className="flex flex-col gap-2">
-            {movie.magnetLink ? (
-              <a
-                href={movie.magnetLink}
-                className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-center font-medium hover:from-green-500 hover:to-emerald-500 transition-colors"
-              >
-                📎 Open Magnet Link
-              </a>
-            ) : (
-              <div className="w-full px-4 py-2 bg-slate-600 text-slate-300 rounded-xl text-center font-medium cursor-not-allowed">
-                ❌ Couldn't find Link
+
+            {/* Status Badge */}
+            {movie.status && (
+              <div className="flex items-center gap-2 mb-3">
+                <span
+                  className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                    movie.status === "found"
+                      ? "bg-green-900/20 text-green-300 border border-green-700/30"
+                      : movie.status === "no_streaming"
+                      ? "bg-orange-900/20 text-orange-300 border border-orange-700/30"
+                      : movie.status === "not_found"
+                      ? "bg-orange-900/20 text-orange-300 border border-orange-700/30"
+                      : "bg-red-900/20 text-red-300 border border-red-700/30"
+                  }`}
+                >
+                  {movie.status === "found" && "✅ Found with Streaming"}
+                  {movie.status === "no_streaming" && "📺 Found, No Streaming"}
+                  {movie.status === "not_found" && "❓ Not Found on TMDb"}
+                  {movie.status === "error" && "❌ Error"}
+                </span>
               </div>
             )}
+          </div>
+
+          {/* Streaming Providers Section */}
+          <div className="space-y-3">
+            {movie.streamingProviders && movie.streamingProviders.length > 0 ? (
+              <div>
+                <p className="text-xs text-slate-400 mb-2">Available on:</p>
+                <div className="flex flex-wrap gap-2">
+                  {movie.streamingProviders.slice(0, 3).map((provider) => (
+                    <div
+                      key={provider.provider_id}
+                      className="flex items-center gap-1 bg-slate-700/50 rounded-lg px-2 py-1"
+                    >
+                      <img
+                        src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                        alt={provider.provider_name}
+                        className="w-4 h-4 rounded"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                      <span className="text-xs text-slate-300">
+                        {provider.provider_name}
+                      </span>
+                    </div>
+                  ))}
+                  {movie.streamingProviders.length > 3 && (
+                    <div className="flex items-center justify-center bg-slate-700/50 rounded-lg px-2 py-1">
+                      <span className="text-xs text-slate-400">
+                        +{movie.streamingProviders.length - 3}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-orange-900/20 border border-orange-700/30 rounded-lg p-3">
+                <p className="text-xs text-orange-300">
+                  {movie.status === "not_found"
+                    ? "❓ Movie not found on TMDb"
+                    : "🔍 No streaming providers found"}
+                </p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2">
+              {movie.streamingProviders &&
+              movie.streamingProviders.length > 0 ? (
+                <Link
+                  href={`/movie/${movie.id}#streaming`}
+                  className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-center font-medium hover:from-green-500 hover:to-emerald-500 transition-colors"
+                >
+                  📺 Where to Stream
+                </Link>
+              ) : (
+                <div className="w-full px-4 py-2 bg-slate-600 text-slate-300 rounded-xl text-center font-medium cursor-not-allowed">
+                  {movie.status === "not_found"
+                    ? "❓ Not Available"
+                    : "❌ No Streaming Options"}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -97,17 +167,17 @@ const ProgressBar = ({ current, total, currentMovie, phase }) => {
 
   const getPhaseInfo = () => {
     switch (phase) {
-      case "cache_check":
+      case "extracting":
         return {
-          label: "Checking Cache",
-          color: "from-yellow-500 to-orange-500",
-          icon: "🔍",
+          label: "Extracting Movie Names",
+          color: "from-purple-500 to-pink-500",
+          icon: "📋",
         };
-      case "fetching":
+      case "processing":
         return {
-          label: "Fetching Online",
-          color: "from-blue-500 to-purple-500",
-          icon: "🌐",
+          label: "Finding Streaming Services",
+          color: "from-green-500 to-blue-500",
+          icon: "🎬",
         };
       default:
         return {
@@ -160,6 +230,7 @@ const LetterboxdPage = () => {
   const [phase, setPhase] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [mounted, setMounted] = useState(false);
+  const [stats, setStats] = useState(null);
 
   const processedTitles = useRef(new Set());
   const readerRef = useRef(null);
@@ -203,65 +274,27 @@ const LetterboxdPage = () => {
     }, 5000);
   };
 
-  const searchMovieDetails = async (movieTitle, magnetLink, status) => {
-    try {
-      const yearMatch = movieTitle.match(/\((\d{4})\)/);
-      const cleanTitle = movieTitle.replace(/\(\d{4}\)/, "").trim();
-      const year = yearMatch ? yearMatch[1] : "";
-
-      const searchQuery = year ? `${cleanTitle} ${year}` : cleanTitle;
-      const response = await fetch(
-        `/api/movies/search?query=${encodeURIComponent(searchQuery)}&page=1`
-      );
-      const data = await response.json();
-
-      if (data.results && data.results.length > 0) {
-        const movie = data.results[0];
-        return { ...movie, magnetLink, originalTitle: movieTitle, status };
-      } else {
-        return {
-          id: `fallback_${Date.now()}_${Math.random()}`,
-          title: movieTitle,
-          poster_path: null,
-          vote_average: 0,
-          release_date: null,
-          runtime: null,
-          magnetLink,
-          originalTitle: movieTitle,
-          status,
-        };
-      }
-    } catch (error) {
-      console.error(`Error searching for ${movieTitle}:`, error);
-      return {
-        id: `error_${Date.now()}_${Math.random()}`,
-        title: movieTitle,
-        poster_path: null,
-        vote_average: 0,
-        release_date: null,
-        runtime: null,
-        magnetLink,
-        originalTitle: movieTitle,
-        status,
-      };
-    }
-  };
-
   const fetchLetterboxdMovies = async () => {
     try {
       setLoading(true);
       setMovies([]);
       processedTitles.current.clear();
 
-      const response = await fetch("/api/magnet/letterboxd", {
+      const response = await fetch("/api/letterboxd/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ letterboxdUrl }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to process list");
+        let errorMessage = "Failed to process list";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = (await response.text()) || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const reader = response.body?.getReader();
@@ -293,102 +326,96 @@ const LetterboxdPage = () => {
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             try {
-              const data = JSON.parse(line.slice(6));
+              const jsonString = line.slice(6).trim();
+              if (!jsonString) continue;
+
+              const data = JSON.parse(jsonString);
 
               if (!isCleanedUpRef.current) {
                 switch (data.type) {
+                  case "progress":
+                    if (data.current && data.total) {
+                      setProgress({ current: data.current, total: data.total });
+                      setCurrentMovie(data.movieTitle || "");
+                      if (data.phase) {
+                        setPhase(data.phase);
+                      }
+                    } else if (data.message) {
+                      addNotification(data.message, "info");
+                    }
+                    break;
+
                   case "movie_found":
                     const titleLower = data.movie.title.toLowerCase();
                     if (!processedTitles.current.has(titleLower)) {
                       processedTitles.current.add(titleLower);
 
-                      const tempId = `temp_${Date.now()}_${Math.random()}`;
-                      const tempMovie = {
-                        id: tempId,
-                        title: data.movie.title,
-                        magnetLink: data.movie.magnetLink,
-                        originalTitle: data.movie.title,
-                        status: data.movie.status,
-                        loading: true,
-                      };
-
-                      setMovies((prev) => [...prev, tempMovie]);
+                      setMovies((prev) => [...prev, data.movie]);
 
                       const statusEmoji = {
-                        cached: "⚡",
-                        fetched: "🌐",
+                        found: "✅",
+                        no_streaming: "📺",
+                        not_found: "❓",
                         error: "❌",
                       };
                       const statusText = {
-                        cached: "Cached",
-                        fetched: "Found",
+                        found: "Found with Streaming",
+                        no_streaming: "Found, No Streaming",
+                        not_found: "Not Found",
                         error: "Error",
                       };
 
-                      addNotification(
-                        `${statusEmoji[data.movie.status] || "✅"} ${
-                          statusText[data.movie.status] || "Found"
-                        }: ${data.movie.title}`,
-                        data.movie.status === "error" ? "error" : "success"
-                      );
-
-                      searchMovieDetails(
-                        data.movie.title,
-                        data.movie.magnetLink,
+                      const emoji = statusEmoji[data.movie.status] || "✅";
+                      const text = statusText[data.movie.status] || "Processed";
+                      const notifType = ["error", "not_found"].includes(
                         data.movie.status
-                      ).then((detailedMovie) => {
-                        if (!isCleanedUpRef.current) {
-                          setMovies((prev) =>
-                            prev.map((movie) =>
-                              movie.id === tempId
-                                ? { ...detailedMovie, loading: false }
-                                : movie
-                            )
-                          );
-                        }
-                      });
+                      )
+                        ? "error"
+                        : "success";
+
+                      addNotification(
+                        `${emoji} ${text}: ${data.movie.title}`,
+                        notifType
+                      );
                     }
-                    break;
-
-                  case "progress":
-                    setProgress({ current: data.current, total: data.total });
-                    setCurrentMovie(data.movieTitle);
-                    // Set phase from data if available
-                    if (data.phase) {
-                      setPhase(data.phase);
-                    }
-                    break;
-
-                  case "movie_timeout":
-                    addNotification(`Timeout: ${data.movieTitle}`, "warning");
-                    break;
-
-                  case "movie_error":
-                    addNotification(`Error: ${data.movieTitle}`, "error");
                     break;
 
                   case "complete":
                     setLoading(false);
-                    addNotification(
-                      `Completed! Found ${processedTitles.current.size} unique movies`,
-                      "success"
-                    );
+                    if (data.stats) {
+                      setStats(data.stats);
+                      addNotification(
+                        `Completed! Processed ${data.stats.processed} movies`,
+                        "success"
+                      );
+                    } else {
+                      addNotification(
+                        `Completed! Found ${processedTitles.current.size} unique movies`,
+                        "success"
+                      );
+                    }
                     break;
 
                   case "error":
                     setError(data.message);
                     setLoading(false);
                     break;
+
+                  default:
+                    console.log("Unknown SSE message type:", data.type);
+                    break;
                 }
               }
             } catch (e) {
               console.error("Error parsing SSE data:", e);
+              console.error("Problematic line:", line);
             }
           }
         }
       }
     } catch (error) {
       if (!isCleanedUpRef.current) {
+        console.error("Fetch error:", error);
         setError(error.message);
         setLoading(false);
       }
@@ -396,16 +423,6 @@ const LetterboxdPage = () => {
       readerRef.current = null;
     }
   };
-
-  useEffect(() => {
-    if (currentMovie) {
-      if (currentMovie.includes("Checking cache")) {
-        setPhase("cache_check");
-      } else if (currentMovie.includes("Processing movie")) {
-        setPhase("fetching");
-      }
-    }
-  }, [currentMovie]);
 
   if (!mounted) {
     return (
@@ -440,20 +457,25 @@ const LetterboxdPage = () => {
     );
   }
 
+  const moviesWithStreaming = movies.filter(
+    (movie) => movie.streamingProviders?.length > 0
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <div className="relative">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent)] pointer-events-none"></div>
 
         <div className="relative max-w-7xl mx-auto px-6 py-12">
+          {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
-              Letterboxd Results
+              Letterboxd Streaming Discovery
             </h1>
             <p className="text-slate-400 text-lg mb-2">
               {loading
-                ? "Processing..."
-                : `Found ${movies.length} unique movies`}
+                ? "Finding streaming services..."
+                : `Found ${movies.length} movies • ${moviesWithStreaming.length} with streaming options`}
             </p>
             <div className="flex justify-center">
               <Link
@@ -465,6 +487,7 @@ const LetterboxdPage = () => {
             </div>
           </div>
 
+          {/* Progress Bar */}
           {loading && progress.total > 0 && (
             <ProgressBar
               current={progress.current}
@@ -474,12 +497,47 @@ const LetterboxdPage = () => {
             />
           )}
 
+          {/* Stats Summary */}
+          {!loading && movies.length > 0 && (
+            <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-white">
+                  {movies.length}
+                </div>
+                <div className="text-sm text-slate-400">Total Movies</div>
+              </div>
+              <div className="bg-green-900/20 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-green-400">
+                  {moviesWithStreaming.length}
+                </div>
+                <div className="text-sm text-slate-400">With Streaming</div>
+              </div>
+              <div className="bg-orange-900/20 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-orange-400">
+                  {movies.filter((m) => m.status === "no_streaming").length}
+                </div>
+                <div className="text-sm text-slate-400">No Streaming</div>
+              </div>
+              <div className="bg-red-900/20 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-red-400">
+                  {
+                    movies.filter((m) =>
+                      ["not_found", "error"].includes(m.status)
+                    ).length
+                  }
+                </div>
+                <div className="text-sm text-slate-400">Not Found</div>
+              </div>
+            </div>
+          )}
+
+          {/* Notifications */}
           {notifications.length > 0 && (
             <div className="fixed top-20 right-4 z-50 space-y-2">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm border ${
+                  className={`px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm border max-w-sm ${
                     notification.type === "success"
                       ? "bg-green-900/20 border-green-700 text-green-300"
                       : notification.type === "warning"
@@ -489,28 +547,35 @@ const LetterboxdPage = () => {
                       : "bg-blue-900/20 border-blue-700 text-blue-300"
                   }`}
                 >
-                  {notification.message}
+                  <div className="text-sm">{notification.message}</div>
                 </div>
               ))}
             </div>
           )}
 
+          {/* Movies Grid */}
           {movies.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-8">
-              {movies.map((movie) => (
+              {movies.map((movie, index) => (
                 <LetterboxdMovieCard
-                  key={movie.id}
+                  key={movie.id || index}
                   movie={movie}
-                  loading={movie.loading}
+                  loading={false}
                 />
               ))}
             </div>
           )}
 
+          {/* Loading State */}
           {loading && movies.length === 0 && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-300 text-lg">Starting processing...</p>
+              <div className="w-16 h-16 border-4 border-slate-600 border-t-green-500 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-slate-300 text-lg">
+                Finding streaming services...
+              </p>
+              <p className="text-slate-400 text-sm mt-2">
+                This may take a moment
+              </p>
             </div>
           )}
         </div>

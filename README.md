@@ -2,7 +2,7 @@
 
 **MyMovieList** is a modern movie web application built using Next.js 15 and Tailwind CSS. It leverages the TMDb (The Movie Database) API to deliver real-time information on popular, upcoming, and top-rated movies. Users can explore detailed movie pages featuring cast information and similar movie suggestions — all wrapped in a sleek, cinematic UI.
 
-The app also features a magnet link discovery tool, allowing users to fetch magnet links for selected movies. Additionally, users can import Letterboxd lists by URL, automatically processing up to 20 movies to retrieve related metadata and corresponding magnet links.
+The app also features a Streaming site discovery tool, allowing users to find where to watch for selected movies. Additionally, users can import Letterboxd lists by URL, automatically processing up to 20 movies to retrieve related metadata and corresponding streaming options.
 
 ---
 
@@ -20,16 +20,16 @@ The app also features a magnet link discovery tool, allowing users to fetch magn
 - Top-Rated Titles
 - Upcoming Releases
 
-### Magnet Link Finder
+### Streaming options finder
 
-- Fetch magnet links for selected movies directly from search or detail pages
+- Fetch Streaming optionss for selected movies directly from search or detail pages
 
 ### Letterboxd Integration
 
 ![logo](./public/Letterboxd.svg)
 
 - Import Letterboxd list URLs
-- Automatically processes up to 20 movies for metadata and magnet link resolution
+- Automatically processes up to 20 movies for metadata and Streaming resolution
 
 ### Smart Search
 

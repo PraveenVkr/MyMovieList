@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import CastDetails from "@/app/components/CastDetails";
 import SimilarMovies from "@/app/components/SimilarMovies";
+import WatchProvidersBox from "@/app/components/WatchProvidersBox";
 
 // Magnet Link Button Component
 const MagnetLinkButton = ({ movieTitle, releaseDate }) => {
@@ -304,10 +305,11 @@ const DetailPage = ({ params }) => {
                 </div>
 
                 {/* Magnet Link Button - Added Here */}
-                <MagnetLinkButton
+                {/* <MagnetLinkButton
                   movieTitle={movie.title}
                   releaseDate={movie.release_date}
-                />
+                /> */}
+                <WatchProvidersBox movieId={id} />
               </div>
             </div>
           </div>
